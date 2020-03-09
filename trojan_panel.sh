@@ -9,26 +9,9 @@ green(){
 red(){
     echo -e "\033[31m\033[01m$1\033[0m"
 }
-
-#更新系统
-install_0(){
-    green "=========="
-    blue "准备更新系统"
-    green "=========="
-    sleep 2s
-    #开始配置及更新系统
-    apt -y install software-properties-common apt-transport-https lsb-release ca-certificates
-    wget -O /etc/apt/trusted.gpg.d/php.gpg https://mirror.xtom.com.hk/sury/php/apt.gpg
-    sh -c 'echo "deb https://mirror.xtom.com.hk/sury/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'   
-    apt update
-    apt upgrade -y
-
-
-}    
-
 #检查域名解析
 check_domain(){
-	apt install -y curl
+	apt-get update -y && apt-get install curl -y
     green "======================="
     blue "请输入绑定到本VPS的域名"
     green "======================="
@@ -40,13 +23,14 @@ check_domain(){
         green "域名解析正常，开始安装Trojan-Panel"
         green "请耐心等待……"
         green "=========================================="
-    sleep 1s
+    sleep 3s
         install_1
         install_2
         install_3
         install_4
         install_5
         install_6
+        install_7
     green "======================================================================"
     green "Trojan-Panel已安装完成，请仔细阅读下面选项"
     green "请在浏览器中输入 https://$your_domain/config ，访问Trojan-Panel面板"
@@ -79,12 +63,13 @@ install_1(){
     green "===================="
     sleep 2s
     echo
+    #开始配置及更新系统
+    apt -y install software-properties-common apt-transport-https lsb-release ca-certificates
+    wget -O /etc/apt/trusted.gpg.d/php.gpg https://mirror.xtom.com.hk/sury/php/apt.gpg
+    sh -c 'echo "deb https://mirror.xtom.com.hk/sury/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'   
+    apt update
     #安装环境
     apt install -y  tcl expect nginx socat sudo git unzip wget zip tar mariadb-server php7.2-fpm php7.2-mysql php7.2-cli php7.2-xml php7.2-json php7.2-mbstring php7.2-tokenizer php7.2-bcmath
-
-    #安装Trojan官方版本
-    sudo bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quickstart/master/trojan-quickstart.sh)"
-
     #解析域名并第一次配置Nginx
 cat > /etc/nginx/nginx.conf <<-EOF
 user  root;
@@ -118,8 +103,19 @@ systemctl restart nginx
 sleep 3s
 }
 
-#申请证书
+#安装Trojan官方版本
 install_2(){
+	echo
+    green "======================="
+    green " 开始安装官方Trojan最新版本"
+    green "======================="
+    sleep 2s
+    echo
+    sudo bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quickstart/master/trojan-quickstart.sh)"
+}
+
+#申请证书
+install_3(){
 	echo
     green "===================="
     green " 开始申请证书"
@@ -134,8 +130,7 @@ chmod -R 755 /usr/local/etc/trojan
 }
 
 #配置数据库
-
-install_3(){
+install_4(){
 	echo
     green "===================="
     green " 开始配置数据库"
@@ -157,11 +152,10 @@ spawn CREATE DATABASE trojan;
 spawn GRANT ALL PRIVILEGES ON trojan.* to trojan@'%' IDENTIFIED BY '$mysqlpasswd';
 spawn quit
 EOF
-
 }
 
 
-install_4(){
+install_5(){
 	echo
     green "=========================="
     green " 开始安装并配置Trojan-Panel"
@@ -371,11 +365,10 @@ server_name _;
 return 301 https://$host$request_uri;
 }
 EOF
-
 }
 
 
-install_5(){
+install_6(){
 	echo
     green "=============================="
     green " 配置Trojan服务器，并生成最新客户端"
@@ -443,11 +436,9 @@ sleep 1s
 zip -q -r trojanwin.zip /usr/local/etc/trojan/v2rayN-win-with-trojan
 sleep 2s
 mv /usr/local/etc/trojan/v2rayN-win-with-trojan/trojanwin.zip /usr/local/etc/trojanwin
-
-
 }
 
-install_6(){
+install_7(){
 	echo
     green "========================="
     green " 开始设置启动项，并重启服务"
@@ -485,7 +476,6 @@ start_menu(){
     read -p "请输入数字:" num
     case "$num" in
         1)
-        install_0
         check_domain
         ;;
         2)
