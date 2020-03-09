@@ -398,9 +398,19 @@ cat > /usr/local/etc/trojan/config.json <<-EOF
         "password": "$mysqlpasswd"
     }
 EOF
-#下载客户端并保存到VPS
+
+#下载官方最新Trojan-win客户端
+mkdir /usr/local/etc/trojan/trojanwin-temp /usr/local/etc/trojanwin
 cd /usr/local/etc/trojan
-wget https://github.com/V2RaySSR/V2RaySSR/raw/master/d8.zip
+wget https://github.com/V2RaySSR/Trojan_Panel/raw/master/v2rayN-win-with-trojan-v2.zip
+unzip v2rayN-win-with-trojan-v2.zip
+wget https://api.github.com/repos/trojan-gfw/trojan/releases/latest
+    latest_version=`grep tag_name latest| awk -F '[:,"v]' '{print $6}'`
+wget -P /usr/local/etc/trojan/trojanwin-temp https://github.com/trojan-gfw/trojan/releases/download/v${latest_version}/trojan-${latest_version}-win.zip
+unzip /usr/local/etc/trojan/trojanwin-temp/trojan-${latest_version}-win.zip -d /usr/local/etc/trojan/trojanwin-temp
+mv -f /usr/local/etc/trojan/trojanwin-temp/trojan.exe /usr/local/etc/trojan/v2rayN-win-with-trojan
+zip -q -r trojanwin.zip /usr/local/etc/trojan/v2rayN-win-with-trojan
+mv /usr/local/etc/trojan/v2rayN-win-with-trojan/trojanwin.zip /usr/local/etc/trojanwin
 
 
 systemctl restart trojan
@@ -420,8 +430,10 @@ systemctl enable nginx
     green "密码：用户名:密码"
     green "端口：443"
     red " 密码里面的:为英文字符"
-    green ""
-    green ""
+    green "Trojan windows最屌客户端已经集成在你的VPS里面"
+    green "具体路径如下，请自行下载"
+    green "VPS里面找到：/usr/local/etc/trojanwin ，里面有一个trojanwin.zip"
+    green "自行解压文件，然后运行V2rayN，填入Trojan客户端配置参数"
     green "======================================================================"
 
 
