@@ -49,8 +49,7 @@ check_domain(){
     fi
 }
 
-
-function install_trojan_panel(){
+install_trojan_panel(){
 apt-get -y install net-tools socat
 Port80=`netstat -tlpn | awk -F '[: ]+' '$1=="tcp"{print $5}' | grep -w 80`
 Port443=`netstat -tlpn | awk -F '[: ]+' '$1=="tcp"{print $5}' | grep -w 443`
