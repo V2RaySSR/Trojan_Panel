@@ -113,58 +113,11 @@ install_2(){
     green " 开始申请证书"
     green "===================="
     echo
-apt-get -y install net-tools socat
-Port80=`netstat -tlpn | awk -F '[: ]+' '$1=="tcp"{print $5}' | grep -w 80`
-Port443=`netstat -tlpn | awk -F '[: ]+' '$1=="tcp"{print $5}' | grep -w 443`
-if [ -n "$Port80" ]; then
-    process80=`netstat -tlpn | awk -F '[: ]+' '$5=="80"{print $9}'`
-    red "==========================================================="
-    red "检测到80端口被占用，占用进程为：${process80}，本次安装结束"
-    red "==========================================================="
-    exit 1
-fi
-if [ -n "$Port443" ]; then
-    process443=`netstat -tlpn | awk -F '[: ]+' '$5=="443"{print $9}'`
-    red "============================================================="
-    red "检测到443端口被占用，占用进程为：${process443}，本次安装结束"
-    red "============================================================="
-    exit 1
-fi
-CHECK=$(grep SELINUX= /etc/selinux/config | grep -v "#")
-if [ "$CHECK" == "SELINUX=enforcing" ]; then
-    red "======================================================================="
-    red "检测到SELinux为开启状态，为防止申请证书失败，请先重启VPS后，再执行本脚本"
-    red "======================================================================="
-    read -p "是否现在重启 ?请输入 [Y/n] :" yn
-	[ -z "${yn}" ] && yn="y"
-	if [[ $yn == [Yy] ]]; then
-	    sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
-            setenforce 0
-	    echo -e "VPS 重启中..."
-	    reboot
-	fi
-    exit
-fi
-if [ "$CHECK" == "SELINUX=permissive" ]; then
-    red "======================================================================="
-    red "检测到SELinux为宽容状态，为防止申请证书失败，请先重启VPS后，再执行本脚本"
-    red "======================================================================="
-    read -p "是否现在重启 ?请输入 [Y/n] :" yn
-	[ -z "${yn}" ] && yn="y"
-	if [[ $yn == [Yy] ]]; then
-	    sed -i 's/SELINUX=permissive/SELINUX=disabled/g' /etc/selinux/config
-            setenforce 0
-	    echo -e "VPS 重启中..."
-	    reboot
-	fi
-    exit
-
 curl https://get.acme.sh | sh
 ~/.acme.sh/acme.sh --issue -d $your_domain --nginx
 ~/.acme.sh/acme.sh --installcert -d $your_domain --key-file /usr/local/etc/trojan/private.key --fullchain-file /usr/local/etc/trojan/certificate.crt
 ~/.acme.sh/acme.sh --upgrade --auto-upgrade
 chmod -R 755 /usr/local/etc/trojan
-
 }
 
 #配置数据库
