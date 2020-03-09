@@ -15,12 +15,15 @@ install_0(){
     green "=========="
     blue "准备更新系统"
     green "=========="
-    sleep 3s
+    sleep 2s
     #开始配置及更新系统
     apt -y install software-properties-common apt-transport-https lsb-release ca-certificates
     wget -O /etc/apt/trusted.gpg.d/php.gpg https://mirror.xtom.com.hk/sury/php/apt.gpg
     sh -c 'echo "deb https://mirror.xtom.com.hk/sury/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'   
-    apt-get update
+    apt update
+    apt upgrade -y
+
+
 }    
 
 #检查域名解析
@@ -74,6 +77,7 @@ install_1(){
     green "===================="
     green " 开始配置系统并更新"
     green "===================="
+    sleep 2s
     echo
     #安装环境
     apt install -y  tcl expect nginx socat sudo git unzip wget zip tar mariadb-server php7.2-fpm php7.2-mysql php7.2-cli php7.2-xml php7.2-json php7.2-mbstring php7.2-tokenizer php7.2-bcmath
@@ -111,6 +115,7 @@ http {
 }
 EOF
 systemctl restart nginx
+sleep 3s
 }
 
 #申请证书
@@ -119,6 +124,7 @@ install_2(){
     green "===================="
     green " 开始申请证书"
     green "===================="
+    sleep 2s
     echo
 curl https://get.acme.sh | sh
 ~/.acme.sh/acme.sh --issue -d $your_domain --nginx
@@ -134,6 +140,7 @@ install_3(){
     green "===================="
     green " 开始配置数据库"
     green "===================="
+    sleep 2s
     echo
 mysqlpasswd=$(cat /dev/urandom | head -1 | md5sum | head -c 8)
 /usr/bin/expect << EOF
@@ -146,9 +153,9 @@ expect "test database and access to it" {send "y\r"}
 expect "privilege tables now" {send "y\r"}
 spawn mysql -u root -p
 expect "Enter password" {send "$mysqlpasswd\r"}
-expect "MariaDB" {send "CREATE DATABASE trojan;\r"}
-expect "MariaDB" {send "GRANT ALL PRIVILEGES ON trojan.* to trojan@'%' IDENTIFIED BY '$mysqlpasswd';\r"}
-expect "MariaDB" {send "quit\r"}
+spawn CREATE DATABASE trojan;
+spawn GRANT ALL PRIVILEGES ON trojan.* to trojan@'%' IDENTIFIED BY '$mysqlpasswd';
+spawn quit
 EOF
 
 }
@@ -159,6 +166,7 @@ install_4(){
     green "=========================="
     green " 开始安装并配置Trojan-Panel"
     green "=========================="
+    sleep 2s
     echo
 #安装 PHP 软件包管理系统
 cd /var/www
@@ -372,6 +380,7 @@ install_5(){
     green "=============================="
     green " 配置Trojan服务器，并生成最新客户端"
     green "=============================="
+    sleep 2s
     echo
 cat > /usr/local/etc/trojan/config.json <<-EOF
 {
@@ -428,8 +437,11 @@ wget https://api.github.com/repos/trojan-gfw/trojan/releases/latest
     latest_version=`grep tag_name latest| awk -F '[:,"v]' '{print $6}'`
 wget -P /usr/local/etc/trojan/trojanwin-temp https://github.com/trojan-gfw/trojan/releases/download/v${latest_version}/trojan-${latest_version}-win.zip
 unzip /usr/local/etc/trojan/trojanwin-temp/trojan-${latest_version}-win.zip -d /usr/local/etc/trojan/trojanwin-temp
-mv -f /usr/local/etc/trojan/trojanwin-temp/trojan.exe /usr/local/etc/trojan/v2rayN-win-with-trojan
+sleep 2s
+mv -f /usr/local/etc/trojan/trojanwin-temp/trojan/trojan.exe /usr/local/etc/trojan/v2rayN-win-with-trojan
+sleep 1s
 zip -q -r trojanwin.zip /usr/local/etc/trojan/v2rayN-win-with-trojan
+sleep 2s
 mv /usr/local/etc/trojan/v2rayN-win-with-trojan/trojanwin.zip /usr/local/etc/trojanwin
 
 
@@ -440,6 +452,7 @@ install_6(){
     green "========================="
     green " 开始设置启动项，并重启服务"
     green "========================="
+    sleep 2s
     echo	
 systemctl restart trojan
 systemctl restart nginx
