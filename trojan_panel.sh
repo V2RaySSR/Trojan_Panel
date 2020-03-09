@@ -10,8 +10,47 @@ red(){
     echo -e "\033[31m\033[01m$1\033[0m"
 }
 
+check_domain(){
+    green "======================="
+    blue "请输入绑定到本VPS的域名"
+    green "======================="
+    read your_domain
+    real_addr=`ping ${your_domain} -c 1 | sed '1{s/[^(]*(//;s/).*//;q}'`
+    local_addr=`curl ipv4.icanhazip.com`
+    if [ $real_addr == $local_addr ] ; then
+        green "=========================================="
+        green "域名解析正常，开始安装Trojan-Panel"
+        green "请耐心等待……"
+        green "=========================================="
+    sleep 1s
+        install_trojan_panel
+    green "======================================================================"
+    green "Trojan-Panel已安装完成，请仔细阅读下面选项"
+    green "请在浏览器中输入 https://$your_domain/config ，访问Trojan-Panel面板"
+    green "第一次注册的用户为系统管理员"
+    green "Quota 选项为流量管控选项。Quota 设置为 -1 ，即为无限流量"
+    green "若是需要设置流量为 10GB，那么 Quota 设置为 10240000000。Quota 的单位是 字节"
+    green "======================================================================"
+    yellow "Trojan客户端配置参数"
+    green "地址：$your_domain"
+    green "密码：用户名:密码"
+    green "端口：443"
+    red " 密码里面的:为英文字符"
+    green "Trojan windows最屌客户端已经集成在你的VPS里面"
+    green "具体路径如下，请自行下载"
+    green "VPS里面找到：/usr/local/etc/trojanwin ，里面有一个trojanwin.zip"
+    green "自行解压文件，然后运行V2rayN，填入Trojan客户端配置参数"
+    green "======================================================================"
+    else
+        red "================================"
+        red "域名解析地址与本VPS IP地址不一致"
+        red "本次安装失败，请确保域名解析正常"
+        red "================================"
+    fi
+}
+
+
 function install_trojan_panel(){
-systemctl stop nginx
 apt-get -y install net-tools socat
 Port80=`netstat -tlpn | awk -F '[: ]+' '$1=="tcp"{print $5}' | grep -w 80`
 Port443=`netstat -tlpn | awk -F '[: ]+' '$1=="tcp"{print $5}' | grep -w 443`
@@ -70,18 +109,6 @@ apt install tcl expect nginx curl socat sudo git unzip wget zip tar -y
 sudo bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quickstart/master/trojan-quickstart.sh)"
 
 #解析域名并第一次配置Nginx
-systemctl enable nginx
-green "======================="
-blue "请输入绑定到本VPS的域名"
-green "======================="
-read your_domain
-real_addr=`ping ${your_domain} -c 1 | sed '1{s/[^(]*(//;s/).*//;q}'`
-local_addr=`curl ipv4.icanhazip.com`
-if [ $real_addr == $local_addr ] ; then
-	green "=========================================="
-	green "       域名解析正常，开始安装trojan"
-	green "=========================================="
-	sleep 1s
 cat > /etc/nginx/nginx.conf <<-EOF
 user  root;
 worker_processes  1;
@@ -110,6 +137,7 @@ http {
     }
 }
 EOF
+
 systemctl restart nginx
 
 #申请证书
@@ -418,24 +446,7 @@ systemctl restart nginx
 systemctl enable trojan
 systemctl enable nginx
 
-    green "======================================================================"
-    green "Trojan-Panel已安装完成，请仔细阅读下面选项"
-    green "请在浏览器中输入 https://$your_domain/config ，访问Trojan-Panel面板"
-    green "第一次注册的用户为系统管理员"
-    green "Quota 选项为流量管控选项。Quota 设置为 -1 ，即为无限流量"
-    green "若是需要设置流量为 10GB，那么 Quota 设置为 10240000000。Quota 的单位是 字节"
-    green "======================================================================"
-    yellow "Trojan客户端配置参数"
-    green "地址：$your_domain"
-    green "密码：用户名:密码"
-    green "端口：443"
-    red " 密码里面的:为英文字符"
-    green "Trojan windows最屌客户端已经集成在你的VPS里面"
-    green "具体路径如下，请自行下载"
-    green "VPS里面找到：/usr/local/etc/trojanwin ，里面有一个trojanwin.zip"
-    green "自行解压文件，然后运行V2rayN，填入Trojan客户端配置参数"
-    green "======================================================================"
-
+}
 
 function bbr_boost_sh(){
     wget -N --no-check-certificate -q -O tcp.sh "https://raw.githubusercontent.com/chiakge/Linux-NetSpeed/master/tcp.sh" && chmod +x tcp.sh && bash tcp.sh
@@ -463,7 +474,7 @@ start_menu(){
     read -p "请输入数字:" num
     case "$num" in
         1)
-        install_trojan_panel
+        check_domain
         ;;
         2)
         bbr_boost_sh
