@@ -10,6 +10,9 @@ red(){
     echo -e "\033[31m\033[01m$1\033[0m"
 }
 
+
+#检查域名解析
+
 check_domain(){
     green "======================="
     blue "请输入绑定到本VPS的域名"
@@ -23,7 +26,12 @@ check_domain(){
         green "请耐心等待……"
         green "=========================================="
     sleep 1s
-        install_trojan_panel
+        install_1
+        install_2
+        install_3
+        install_4
+        install_5
+        install_6
     green "======================================================================"
     green "Trojan-Panel已安装完成，请仔细阅读下面选项"
     green "请在浏览器中输入 https://$your_domain/config ，访问Trojan-Panel面板"
@@ -31,7 +39,7 @@ check_domain(){
     green "Quota 选项为流量管控选项。Quota 设置为 -1 ，即为无限流量"
     green "若是需要设置流量为 10GB，那么 Quota 设置为 10240000000。Quota 的单位是 字节"
     green "======================================================================"
-    yellow "Trojan客户端配置参数"
+    red "Trojan客户端配置参数"
     green "地址：$your_domain"
     green "密码：用户名:密码"
     green "端口：443"
@@ -49,7 +57,62 @@ check_domain(){
     fi
 }
 
-install_trojan_panel(){
+install_1(){
+	echo
+    green "===================="
+    green " 开始配置系统并更新"
+    green "===================="
+    echo
+    #开始配置及更新系统
+    apt -y install software-properties-common apt-transport-https lsb-release ca-certificates
+    wget -O /etc/apt/trusted.gpg.d/php.gpg https://mirror.xtom.com.hk/sury/php/apt.gpg
+    sh -c 'echo "deb https://mirror.xtom.com.hk/sury/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'   
+    apt-get update
+    #安装环境
+    apt install -y  tcl expect nginx curl socat sudo git unzip wget zip tar mariadb-server php7.2-fpm php7.2-mysql php7.2-cli php7.2-xml php7.2-json php7.2-mbstring php7.2-tokenizer php7.2-bcmath
+
+    #安装Trojan官方版本
+    sudo bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quickstart/master/trojan-quickstart.sh)"
+
+    #解析域名并第一次配置Nginx
+cat > /etc/nginx/nginx.conf <<-EOF
+user  root;
+worker_processes  1;
+error_log  /var/log/nginx/error.log warn;
+pid        /var/run/nginx.pid;
+events {
+    worker_connections  1024;
+}
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+    log_format  main  '\$remote_addr - \$remote_user [\$time_local] "\$request" '
+                      '\$status \$body_bytes_sent "\$http_referer" '
+                      '"\$http_user_agent" "\$http_x_forwarded_for"';
+    access_log  /var/log/nginx/access.log  main;
+    sendfile        on;
+    #tcp_nopush     on;
+    keepalive_timeout  120;
+    client_max_body_size 20m;
+    #gzip  on;
+    server {
+        listen       80;
+        server_name  $your_domain;
+        root /usr/share/nginx/html;
+        index index.php index.html index.htm;
+    }
+}
+EOF
+systemctl restart nginx
+}
+
+#申请证书
+install_2(){
+	echo
+    green "===================="
+    green " 开始申请证书"
+    green "===================="
+    echo
 apt-get -y install net-tools socat
 Port80=`netstat -tlpn | awk -F '[: ]+' '$1=="tcp"{print $5}' | grep -w 80`
 Port443=`netstat -tlpn | awk -F '[: ]+' '$1=="tcp"{print $5}' | grep -w 443`
@@ -95,66 +158,24 @@ if [ "$CHECK" == "SELINUX=permissive" ]; then
 	    reboot
 	fi
     exit
-#开始更新系统
-apt -y install software-properties-common apt-transport-https lsb-release ca-certificates
-wget -O /etc/apt/trusted.gpg.d/php.gpg https://mirror.xtom.com.hk/sury/php/apt.gpg
-sh -c 'echo "deb https://mirror.xtom.com.hk/sury/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'   
-apt-get update
 
-#安装依赖环境
-apt install tcl expect nginx curl socat sudo git unzip wget zip tar -y
-
-#安装Trojan官方版本
-sudo bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quickstart/master/trojan-quickstart.sh)"
-
-#解析域名并第一次配置Nginx
-cat > /etc/nginx/nginx.conf <<-EOF
-user  root;
-worker_processes  1;
-error_log  /var/log/nginx/error.log warn;
-pid        /var/run/nginx.pid;
-events {
-    worker_connections  1024;
-}
-http {
-    include       /etc/nginx/mime.types;
-    default_type  application/octet-stream;
-    log_format  main  '\$remote_addr - \$remote_user [\$time_local] "\$request" '
-                      '\$status \$body_bytes_sent "\$http_referer" '
-                      '"\$http_user_agent" "\$http_x_forwarded_for"';
-    access_log  /var/log/nginx/access.log  main;
-    sendfile        on;
-    #tcp_nopush     on;
-    keepalive_timeout  120;
-    client_max_body_size 20m;
-    #gzip  on;
-    server {
-        listen       80;
-        server_name  $your_domain;
-        root /usr/share/nginx/html;
-        index index.php index.html index.htm;
-    }
-}
-EOF
-
-systemctl restart nginx
-
-#申请证书
 curl https://get.acme.sh | sh
 ~/.acme.sh/acme.sh --issue -d $your_domain --nginx
 ~/.acme.sh/acme.sh --installcert -d $your_domain --key-file /usr/local/etc/trojan/private.key --fullchain-file /usr/local/etc/trojan/certificate.crt
 ~/.acme.sh/acme.sh --upgrade --auto-upgrade
 chmod -R 755 /usr/local/etc/trojan
 
-#安装PHP7.2 和数据库
-apt update
-apt upgrade
-apt install -y  mariadb-server php7.2-fpm php7.2-mysql php7.2-cli php7.2-xml php7.2-json php7.2-mbstring php7.2-tokenizer php7.2-bcmath
+}
 
 #配置数据库
 
+install_3(){
+	echo
+    green "===================="
+    green " 开始配置数据库"
+    green "===================="
+    echo
 mysqlpasswd=$(cat /dev/urandom | head -1 | md5sum | head -c 8)
-
 /usr/bin/expect << EOF
 spawn mysql_secure_installation
 expect "password for root" {send "$mysqlpasswd\r"}
@@ -170,6 +191,15 @@ expect "MariaDB" {send "GRANT ALL PRIVILEGES ON trojan.* to trojan@'%' IDENTIFIE
 expect "MariaDB" {send "quit\r"}
 EOF
 
+}
+
+
+install_4(){
+	echo
+    green "=========================="
+    green " 开始安装并配置Trojan-Panel"
+    green "=========================="
+    echo
 #安装 PHP 软件包管理系统
 cd /var/www
 curl -sS https://getcomposer.org/installer -o composer-setup.php
@@ -181,15 +211,11 @@ apt install -y nodejs
 
 #安装 Trojan-Panel
 git clone https://github.com/trojan-gfw/trojan-panel.git
-sleep 2s
-
 cd trojan-panel
 composer install
 npm install
 npm audit fix --force
 npm install
-
-#配置 Trojan-Panel 运行环境
 cp .env.example .env
 php artisan key:generate
 cat > /var/www/trojan-panel/.env <<-EOF
@@ -378,8 +404,15 @@ return 301 https://$host$request_uri;
 }
 EOF
 
-sleep 2s
-#配置Trojan文件
+}
+
+
+install_5(){
+	echo
+    green "=============================="
+    green " 配置Trojan服务器，并生成最新客户端"
+    green "=============================="
+    echo
 cat > /usr/local/etc/trojan/config.json <<-EOF
 {
     "run_type": "server",
@@ -439,6 +472,15 @@ mv -f /usr/local/etc/trojan/trojanwin-temp/trojan.exe /usr/local/etc/trojan/v2ra
 zip -q -r trojanwin.zip /usr/local/etc/trojan/v2rayN-win-with-trojan
 mv /usr/local/etc/trojan/v2rayN-win-with-trojan/trojanwin.zip /usr/local/etc/trojanwin
 
+
+}
+
+install_6(){
+	echo
+    green "========================="
+    green " 开始设置启动项，并重启服务"
+    green "========================="
+    echo	
 systemctl restart trojan
 systemctl restart nginx
 systemctl enable trojan
@@ -448,7 +490,6 @@ systemctl enable nginx
 function bbr_boost_sh(){
     wget -N --no-check-certificate -q -O tcp.sh "https://raw.githubusercontent.com/chiakge/Linux-NetSpeed/master/tcp.sh" && chmod +x tcp.sh && bash tcp.sh
 }
-
 
 start_menu(){
     clear
@@ -462,11 +503,11 @@ start_menu(){
     red " 本脚本仅仅支持Debian9，其他Debian系统未测试！"
     red " 本脚本仅仅支持Debian9，其他Debian系统未测试！"
     green "=================================================="
-    yellow "若觉得脚本有用，请订阅波仔的YouTube，谢谢支持"
+    red "若觉得脚本有用，请订阅波仔的YouTube，谢谢支持"
     green "=================================================="
     green "1. 一键安装Trojan-Panel"
     green "2. 安装BBRPlus4合一加速"
-    yellow "0. 退出脚本"
+    red "0. 退出脚本"
     echo
     read -p "请输入数字:" num
     case "$num" in
