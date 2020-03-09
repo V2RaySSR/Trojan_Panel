@@ -10,10 +10,22 @@ red(){
     echo -e "\033[31m\033[01m$1\033[0m"
 }
 
+#更新系统
+install_0(){
+    green "=========="
+    blue "准备更新系统"
+    green "=========="
+    sleep 3s
+    #开始配置及更新系统
+    apt -y install software-properties-common apt-transport-https lsb-release ca-certificates
+    wget -O /etc/apt/trusted.gpg.d/php.gpg https://mirror.xtom.com.hk/sury/php/apt.gpg
+    sh -c 'echo "deb https://mirror.xtom.com.hk/sury/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'   
+    apt-get update
+}    
 
 #检查域名解析
-
 check_domain(){
+	apt install -y curl
     green "======================="
     blue "请输入绑定到本VPS的域名"
     green "======================="
@@ -63,13 +75,8 @@ install_1(){
     green " 开始配置系统并更新"
     green "===================="
     echo
-    #开始配置及更新系统
-    apt -y install software-properties-common apt-transport-https lsb-release ca-certificates
-    wget -O /etc/apt/trusted.gpg.d/php.gpg https://mirror.xtom.com.hk/sury/php/apt.gpg
-    sh -c 'echo "deb https://mirror.xtom.com.hk/sury/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'   
-    apt-get update
     #安装环境
-    apt install -y  tcl expect nginx curl socat sudo git unzip wget zip tar mariadb-server php7.2-fpm php7.2-mysql php7.2-cli php7.2-xml php7.2-json php7.2-mbstring php7.2-tokenizer php7.2-bcmath
+    apt install -y  tcl expect nginx socat sudo git unzip wget zip tar mariadb-server php7.2-fpm php7.2-mysql php7.2-cli php7.2-xml php7.2-json php7.2-mbstring php7.2-tokenizer php7.2-bcmath
 
     #安装Trojan官方版本
     sudo bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quickstart/master/trojan-quickstart.sh)"
@@ -465,6 +472,7 @@ start_menu(){
     read -p "请输入数字:" num
     case "$num" in
         1)
+        install_0
         check_domain
         ;;
         2)
