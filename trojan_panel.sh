@@ -440,12 +440,10 @@ mv -f /usr/local/etc/trojan/trojanwin-temp/trojan.exe /usr/local/etc/trojan/v2ra
 zip -q -r trojanwin.zip /usr/local/etc/trojan/v2rayN-win-with-trojan
 mv /usr/local/etc/trojan/v2rayN-win-with-trojan/trojanwin.zip /usr/local/etc/trojanwin
 
-
 systemctl restart trojan
 systemctl restart nginx
 systemctl enable trojan
 systemctl enable nginx
-
 }
 
 function bbr_boost_sh(){
