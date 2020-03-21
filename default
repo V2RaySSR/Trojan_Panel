@@ -1,0 +1,47 @@
+server {
+listen 127.0.0.1:80 default_server;
+ 
+server_name your_domain;
+ 
+location / {
+proxy_pass https://www.v2rayssr.com;
+}
+ 
+location /config {
+alias /var/www/trojan-panel/public;
+index index.php;
+try_files $uri $uri/ @config;
+ 
+location ~ \.php$ {
+include snippets/fastcgi-php.conf;
+fastcgi_param SCRIPT_FILENAME $request_filename;
+fastcgi_pass unix:/var/run/php/php7.2-fpm.sock;
+}
+ 
+location ~ /\.(?!well-known).* {
+deny all;
+}
+}
+ 
+location @config {
+rewrite /config/(.*)$ /config/index.php?/$1 last;
+}
+ 
+}
+ 
+server {
+listen 127.0.0.1:80;
+ 
+server_name vps_ip;
+ 
+return 301 https://your_domain$request_uri;
+}
+ 
+server {
+listen 0.0.0.0:80;
+listen [::]:80;
+ 
+server_name _;
+ 
+return 301 https://$host$request_uri;
+}
