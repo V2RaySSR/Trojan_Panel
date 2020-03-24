@@ -6,40 +6,21 @@ blue(){
 green(){
     echo -e "\033[32m\033[01m$1\033[0m"
 }
+yellow(){
+    echo -e "\033[33m\033[01m$1\033[0m"
+}
 red(){
     echo -e "\033[31m\033[01m$1\033[0m"
 }
 
-if [[ -f /etc/redhat-release ]]; then
-    release="centos"
-    systemPackage="yum"
-    systempwd="/usr/lib/systemd/system/"
-elif cat /etc/issue | grep -Eqi "debian"; then
-    release="debian"
-    systemPackage="apt-get"
-    systempwd="/lib/systemd/system/"
-elif cat /etc/issue | grep -Eqi "ubuntu"; then
-    release="ubuntu"
-    systemPackage="apt-get"
-    systempwd="/lib/systemd/system/"
-elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
-    release="centos"
-    systemPackage="yum"
-    systempwd="/usr/lib/systemd/system/"
-elif cat /proc/version | grep -Eqi "debian"; then
-    release="debian"
-    systemPackage="apt-get"
-    systempwd="/lib/systemd/system/"
-elif cat /proc/version | grep -Eqi "ubuntu"; then
-    release="ubuntu"
-    systemPackage="apt-get"
-    systempwd="/lib/systemd/system/"
-elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
-    release="centos"
-    systemPackage="yum"
-    systempwd="/usr/lib/systemd/system/"
-fi
 install_panel(){
+if cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
+	red "======================================="
+	red "本脚本仅仅支持：Debian9+ / Ubuntu16.04+"
+	red "======================================="	
+	exit 1
+else	
+	apt-get update -y
     apt install -y curl
     green "======================="
 	blue "请输入绑定到本VPS的域名"
@@ -59,17 +40,25 @@ if [ $real_addr == $local_addr ] ; then
 	blue "        现在开始更新系统并安装必要组件"
 	green "================================================="
 	sleep 2s
-	apt-get update
-	apt -y install software-properties-common apt-transport-https lsb-release ca-certificates
-	wget -O /etc/apt/trusted.gpg.d/php.gpg https://mirror.xtom.com.hk/sury/php/apt.gpg
-	sh -c 'echo "deb https://mirror.xtom.com.hk/sury/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'   
-	apt-get update
-	apt install -y expect nginx curl socat sudo git unzip wget  mariadb-server php7.2-fpm php7.2-mysql php7.2-cli php7.2-xml php7.2-json php7.2-mbstring php7.2-tokenizer php7.2-bcmath
+	apt update -y
+		if cat /etc/issue | grep -Eqi "ubuntu"; then
+			apt install -y software-properties-common
+			yes | add-apt-repository ppa:ondrej/php
+			apt update -y
+			apt install -y expect nginx curl socat sudo git unzip wget  mariadb-server php7.2-fpm php7.2-mysql php7.2-cli php7.2-xml php7.2-json php7.2-mbstring php7.2-tokenizer php7.2-bcmath
+		else
+			apt -y install software-properties-common apt-transport-https lsb-release ca-certificates
+			wget -O /etc/apt/trusted.gpg.d/php.gpg https://mirror.xtom.com.hk/sury/php/apt.gpg
+			sh -c 'echo "deb https://mirror.xtom.com.hk/sury/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'   
+			apt update -y
+			apt install -y expect nginx curl socat sudo git unzip wget  mariadb-server php7.2-fpm php7.2-mysql php7.2-cli php7.2-xml php7.2-json php7.2-mbstring php7.2-tokenizer php7.2-bcmath
+		fi
+if test -s /etc/php/7.2/cli/php.ini; then
 	green "================================================="
 	blue "           开始安装官方的Trojan服务"
 	green "================================================="
 	sleep 2s
-	sudo bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quickstart/master/trojan-quickstart.sh)"
+	yes | sudo bash -c "$(wget -O- https://raw.githubusercontent.com/trojan-gfw/trojan-quickstart/master/trojan-quickstart.sh)"
 	trojan_passwd=$(cat /dev/urandom | head -1 | md5sum | head -c 8)
 cat > /usr/local/etc/trojan/config.json <<-EOF
 {
@@ -92,6 +81,9 @@ cat > /usr/local/etc/trojan/config.json <<-EOF
         "alpn": [
             "http/1.1"
         ],
+        "alpn_port_override": {
+            "h2": 81
+        },
         "reuse_session": true,
         "session_ticket": false,
         "session_timeout": 600,
@@ -113,7 +105,8 @@ cat > /usr/local/etc/trojan/config.json <<-EOF
         "server_port": 3306,
         "database": "trojan",
         "username": "trojan",
-        "password": "$trojan_passwd"
+        "password": "$trojan_passwd",
+        "cafile": ""
     }
 }
 EOF
@@ -209,6 +202,7 @@ EOF
 	cd trojan-panel
 	composer install
 	npm install
+	rm -rf /var/www/trojan-panel/.env
 	wget https://raw.githubusercontent.com/V2RaySSR/Trojan_Panel/master/.env
 	php artisan key:generate
 	sed -i "s/your_domain/$your_domain/;" /var/www/trojan-panel/.env
@@ -235,32 +229,98 @@ EOF
 	rm -rf /etc/nginx/nginx.conf
 	wget -P /etc/nginx https://raw.githubusercontent.com/V2RaySSR/Trojan_Panel/master/nginx.conf
 	systemctl restart trojan nginx
+cat > /usr/local/etc/trojan/Trojan配置信息.txt <<-EOF
+==================================================
+            搭建完毕（请仔细阅读以下提示）
+==================================================
+
+你的数据库密码为：$trojan_passwd
+Trojan面板的访问地址为 https://$your_domain/config
+访问此面板第一次注册的用户为系统管理员
+此面板搭建包含了 Trojan 服务器的搭建
+
+==================================================
+            以下是 Trojan 的连接信息
+==================================================
+
+            域名：$your_domain
+            端口：443
+            密码：用户名:密码
+
+ 以上提到的密码为 Trojan-Panel 注册的用户名和密码
+        请注意（用户名:密码）为英文标点
+		  
+==================================================
+
+EOF
+	green "=================================================="
+   yellow "            搭建完毕（请仔细阅读以下提示）"
+	green "=================================================="
+	 blue "你的数据库密码为：$trojan_passwd"
+	 blue "Trojan面板的访问地址为 https://$your_domain/config"
+	 blue "访问此面板第一次注册的用户为系统管理员"
+	 blue "此面板搭建包含了 Trojan 服务器的搭建"
+	green "=================================================="
+   yellow "            以下是 Trojan 的连接信息"
+	green "=================================================="
+	 blue "             域名：$your_domain"
+	 blue "             端口：443"
+	 blue "             密码：用户名:密码"
+	 blue " "
+   yellow "以上提到的密码为 Trojan-Panel 注册的用户名和密码"
+	  red "             请注意（:）为英文标点"
+	green "=================================================="
+   yellow "      以上信息BAK在 /usr/local/etc/trojan/ "
+   yellow "教程: https://v2rayssr.com/trojan-panel-aoto.html"
+    green "=================================================="
+	exit 0
+	
+else
+	red "================================"
+	red "  PHP7.2等基础依赖安装不成功"
+	red "================================"	
+	exit 1
+fi
 else
 	red "================================"
 	red "域名解析地址与本VPS IP地址不一致"
 	red "本次安装失败，请确保域名解析正常"
 	red "================================"	
+	exit 1
+fi
 fi
 }
 
 bbr_boost_sh(){
+    apt install -y wget
     wget -N --no-check-certificate -q -O tcp.sh "https://raw.githubusercontent.com/chiakge/Linux-NetSpeed/master/tcp.sh" && chmod +x tcp.sh && bash tcp.sh
 }
-
 
 start_menu(){
     clear
 	green "=========================================================="
-	 blue "支持：centos7+/debian9+/ubuntu16.04+"
+   yellow "本脚本仅仅支持：Debian9+ / Ubuntu16.04+"
 	 blue "网站：www.v2rayssr.com （已开启禁止国内访问）"
 	 blue "YouTube频道：波仔分享"
-	 blue "本脚本禁止在国内网站转载"
+	 blue "本脚本禁止在国内任何网站转载"
 	green "=========================================================="
-	 blue "简介：一键安装多用户Trojan管理面板 "
+   yellow "简介：一键安装多用户 Trojan 管理面板 2020-03-23"
+   yellow "教程: https://v2rayssr.com/trojan-panel-aoto.html"
 	green "=========================================================="
-    blue "1. 安装 Trojan-Panel 面板"
-    blue "2. 安装 BBRPlus4 合一加速"
-     red "0. 退出脚本"
+	green " "
+	green "=========================================================="
+      red "本脚本会覆盖 Nginx 并占用80/443，请勿在生产环境使用！切记！"
+	green "=========================================================="
+	green " "
+	green "=========================================================="
+	  red "      为确保一次性安装成功，请使用新系统安装"
+	  red "  同IP多次Composer安装，会提示输入TOKEN。GitHub的保护机制"
+   yellow "若出现多次尝试本脚本安装，需要输入TOKEN 博客搜索 Composer "
+	green "=========================================================="
+     blue "1. 安装 Trojan-Panel 面板"
+     blue "2. 安装 BBRPlus4 合一加速（第一次运行安装内核）"
+	 blue "3. 安装 BBRPlus4 合一加速（第二次运行启动加速）"
+   yellow "0. 退出脚本"
     echo
     read -p "请输入数字:" num
     case "$num" in
@@ -270,8 +330,11 @@ start_menu(){
 		2)
 		bbr_boost_sh
 		;;
+		3)
+		./tcp.sh
+		;;
 		0)
-		exit 1
+		exit 0
 		;;
 		*)
 	clear
