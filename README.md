@@ -30,7 +30,7 @@ YouTube频道：波仔分享
 
 运行代码：
 
-wget -N --no-check-certificate -q -O trojan_panel.sh "https://raw.githubusercontent.com/V2RaySSR/Trojan_Panel/master/trojan_panel.sh" && chmod +x trojan_panel.sh && bash trojan_panel.sh
+wget -N --no-check-certificate "https://raw.githubusercontent.com/V2RaySSR/Trojan_Panel/master/trojan_panel.sh" && chmod +x trojan_panel.sh && ./trojan_panel.sh
 
 
 
